@@ -1,10 +1,10 @@
-from urlparse import urljoin
-from math import ceil
+from random import randint
 
 NAME    = 'xkcd'
 ART      = 'art-default.jpg'
 ICON     = 'icon-default.png'
-CACHE_1YEAR = 365 * CACHE_1DAY
+SEARCH_STEP_REDUCTION_FACTOR = 10
+MAX_NB_ITER = 100
 JSON_LAST_ELT_URL = 'http://xkcd.com/info.0.json'
 JSON_BASE_URL = 'http://xkcd.com/%d/info.0.json'
 
@@ -34,6 +34,7 @@ def XKCDMenu():
 
     if not BasicInfos:
         # Not able to get even basic infos, aborting
+        Log.Error('Basic infos where not found, xkcd may not be available')
         return ObjectContainer(header=NAME, message=L("ErrorBasics"))
 
     #Create yearly subdirectories
@@ -62,83 +63,93 @@ def StripDirectory(stripsstart, stripsstop, sender = None):
 @route('/photos/xkcd/getyearicon')
 def GetYearIcon(year, binfos, sender=None):
     img = R(ICON)
-    nb_image = GetYearNumber(year, binfos, type='random')
+    first_nb, last_nb = GetYearNumber(year, binfos)
 
-    if Data.Exists(str(nb_image)):
-        # Get data from the JSON cache
-        StripInfos = Data.LoadObject(str(nb_image))
-    else:
-        # Data not available, get it from URL and cache
-        try:
-            StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (nb_image,))
-        except:
-            return Redirect(img)
-        Data.SaveObject(sapprox, StripInfos)
+    # Choose a random img
+    if first_nb:
+         nb_image = randint(first_nb, last_nb)
+         StripInfos = GetJSON(nb_image)
+        if StripInfos and 'img' in StripInfos and StripInfos['img']:
+            img = StripInfos['img']
 
-    if 'img' in StripInfos and StripInfos['img']:
-        img = StripInfos['img']
     return Redirect(img)
 
 ####################################################################################################
-# Find an image number for the year: first, last, random
-@route('/photos/xkcd/getyear')
-def GetYearNumber(year, binfos, nb=1, type='random', sender=None):
-    img = 0
+# Find boundary numbers for a year
+@route('/photos/xkcd/getyearnumbers')
+def GetYearNumbers(year, binfos, sender=None):
     # Get data from year cache if existing
     cache = 'year_%d' %(year,)
+    year_boundaries = {}
+
     if Data.Exists(cache):
         # Get data from the JSON cache
-        ImgYear = Data.LoadObject(cache)
-        
+        year_boundaries = Data.LoadObject(cache)
+        return 
 
-    if type=='random':
+    if not year_boundaries:
+        # Very inefficient search algorithm for year boundaries but as cache is used not such a problem
         approxnumber = int(binfos['last_strip_number']*\
-                    (year-binfos['first_year'])/(binfos['last_year']-binfos['first_year']))
-        if Data.Exists(sapprox):
-                # Get data from the JSON cache
-                StripInfos = Data.LoadObject(sapprox)
-            else:
-                # Data not available, get it from URL and cache
-                try:
-                    StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (approxnumber,))
-                except:
-                    imageurl = ''
-                    return Redirect(img)
-                Data.SaveObject(sapprox, StripInfos)
-        nyear = StripInfos['year']
-        
-        while(approxnumber!=year):
-            if Data.Exists(sapprox):
-                # Get data from the JSON cache
-                StripInfos = Data.LoadObject(sapprox)
-            else:
-                # Data not available, get it from URL and cache
-                try:
-                    StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (approxnumber,))
-                except:
-                    imageurl = ''
-                    return Redirect(img)
-                Data.SaveObject(sapprox, StripInfos)
-            nyear = StripInfos['year']
-            if nyear>year:
-                
+                (year-binfos['first_year'])/(binfos['last_year']-binfos['first_year']))
+        infos = GetJSON(approxnumber)
+        step_backward = (infos['year']) + infos['month']/12 - binfos['first_year'])
+        step_backward = approxnumber/(SEARCH_STEP_REDUCTION_FACTOR*step_backward)
+        step_forward = (infos['year']) + infos['month']/12 - binfos['last_year'])
+        step_forward = (binfos['last_strip_number']-approxnumber)/(SEARCH_STEP_REDUCTION_FACTOR*step_forward)
 
-        sapprox = str(approxnumber)
-        if Data.Exists(sapprox):
-            # Get data from the JSON cache
-            StripInfos = Data.LoadObject(sapprox)
-        else:
-            # Data not available, get it from URL and cache
-            try:
-                StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (approxnumber,))
-            except:
-                imageurl = ''
-                break
-            Data.SaveObject('approxnumber', FirstStripInfos)
-        imageurl = StripInfos['img']
-    elif type=='random':
+        # Look for the right values until we find them
+        year_first = year_last = 0
+        year_before = year after = True
 
-    return img
+        # Special cases
+        if year == binfos['first_year']:
+            year_first = 1
+            year_before = False
+        if year == binfos['last_year']:
+            year_last = binfos['last_strip_number']
+            year after = False
+
+        i = 0
+        while((year_before or year after) and i<MAX_NB_ITER):
+            i += 1
+            # First entry for the year
+            if year_before:
+                new_nb = max(int(approxnumber - step_backward),1)
+                infos = GetJSON(new_nb)
+                if infos['year'] == (year - 1):
+                    # We are close, now go forward
+                    j = 0
+                    while(j<MAX_NB_ITER and infos['year'] != year): 
+                        new_nb += 1
+                        j += 1
+                        infos = GetJSON(new_nb)
+                    if infos['year'] == year:
+                        year_first = new_nb
+                    year_before = False
+            # Last entry for the year
+            if year after:
+                new_nb = min(int(approxnumber + step_forward),binfos['last_strip_number'])
+                infos = GetJSON(new_nb)
+                if infos['year'] == (year + 1):
+                    # We are close, now go backward
+                    j = 0
+                    while(j<MAX_NB_ITER and infos['year'] != year): 
+                        new_nb -= 1
+                        j += 1
+                        infos = GetJSON(new_nb)
+                    if infos['year'] == year:
+                        year_last = new_nb
+                    year_after = False
+
+    # Ok, now we handle possible errors
+    if not year_first or not year_last:
+        Log.Critical('Impossible to find the %s strip of the year %d',
+                            'first' if not year_first else 'last', year)
+    else:
+        year_boundaries = {'year_first_strip':year_first, 'year_last_strip':year_last}
+        Data.SaveObject(cache, year_boundaries)
+
+    return year_first, year_last
 
 ####################################################################################################
 # Get basic infos before creating the structure
@@ -148,17 +159,12 @@ def GetBasicInfos(sender=None):
     try:
         LastStripInfos = JSON.ObjectFromURL(JSON_LAST_ELT_URL)
     except:
+        Log.Debug('JSON not available for the last strip', iid)
         return {}
-    if Data.Exists('1'):
-        # Get data from the JSON cache
-        FirstStripInfos = Data.LoadObject('1')
-    else:
-        # Data not available, get it from URL and cache
-        try:
-            FirstStripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (1,))
-        except:
-            return {}
-        Data.SaveObject('1', FirstStripInfos)
+    FirstStripInfos = GetJSON('1')
+
+    if FirstStripInfos is None:
+        return {}
 
     infos = {
             'first_year':int(FirstStripInfos['year']),
@@ -166,3 +172,23 @@ def GetBasicInfos(sender=None):
             'last_strip_number':int(LastStripInfos['num']),
             }
     return infos
+
+####################################################################################################
+# Get JSON info from URL or cache & cache it
+@route('/photos/xkcd/getjson')
+def GetJSON(id, sender=None):
+    # Get the number of the last comic
+    sid = str(id)
+    iid = int(id)
+    if Data.Exists(sid):
+        # Get data from the JSON cache
+        StripInfos = Data.LoadObject(sid)
+    else:
+        # Data not available, get it from URL and cache
+        try:
+            StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (iid,))
+        except:
+            Log.Debug('JSON not available for id=%d', iid)
+            return None
+        Data.SaveObject(sid, StripInfos)
+    return StripInfos
