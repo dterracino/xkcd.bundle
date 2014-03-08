@@ -1,3 +1,17 @@
 {
     "ErrorBasics": "xkcd website is not currently available.\nTry later!",
+    "Year_Dirname": "%d - Strips %d to %d",
+    "Month_Albumname": "%s - Strips %d to %d",
+    "Month_1": "January",
+    "Month_2": "February",
+    "Month_3": "March",
+    "Month_4": "April",
+    "Month_5": "May",
+    "Month_6": "June",
+    "Month_7": "July",
+    "Month_8": "August",
+    "Month_9": "September",
+    "Month_10": "October",
+    "Month_11": "November",
+    "Month_12": "December",
 }
