@@ -5,6 +5,7 @@ ART      = 'art-default.jpg'
 ICON     = 'icon-default.png'
 SEARCH_STEP_REDUCTION_FACTOR = 10
 MAX_NB_ITER = 100
+CACHE_1YEAR = 365 * CACHE_1DAY
 JSON_LAST_ELT_URL = 'http://xkcd.com/info.0.json'
 JSON_BASE_URL = 'http://xkcd.com/%s/info.0.json'
 MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
@@ -42,6 +43,7 @@ def XKCDMenu():
     #Create yearly subdirectories
     for i in xrange(BasicInfos['first_year'], BasicInfos['last_year']):
         first_nb, last_nb = GetYearNumbers(BasicInfos,i)
+        Log.Debug('Year %d started',i)
         if not first_nb:
             continue
         name = Locale.LocalStringWithFormat('Year_Dirname', i, first_nb, last_nb)
@@ -117,10 +119,15 @@ def GetIcon(binfos, year=0, month=0, id=0, sender=None):
     if id:
         internal_id = id
     elif year:
-        if month:
-            first_nb, last_nb = GetMonthNumbers(binfos, year, month)
-        else:
-            first_nb, last_nb = GetYearNumbers(binfos, year)
+        try:
+            if month:
+                first_nb, last_nb = GetMonthNumbers(binfos, year, month)
+            else:
+                first_nb, last_nb = GetYearNumbers(binfos, year)
+        except:
+            # Error with GetYear/Month functions
+            Log.Warn('Function GetIcon defaulting due to GetYear/Month problems')
+            return Redirect(img)
     else:
         # Error
         Log.Error('Function GetIcon called without correct args, defaulting...')
@@ -250,11 +257,14 @@ def GetYearNumbers(binfos, year, sender=None):
 
     if Data.Exists(cache):
         # Get data from the JSON cache
-        year_boundaries = Data.LoadObject(cache)
-        year_first = year_boundaries['year_first_strip']
-        year_last = year_boundaries['year_last_strip']
-        Log.Debug('For %d, first strip number is %d and last is %d', year, year_first, year_last)
-        return year_first, year_last
+        try:
+            year_boundaries = Data.LoadObject(cache)
+            year_first = year_boundaries['year_first_strip']
+            year_last = year_boundaries['year_last_strip']
+            Log.Debug('For %d, first strip number is %d and last is %d', year, year_first, year_last)
+            return year_first, year_last
+        except:
+            Log.Warn('For %d, years boundaries were not correctly defined. Correcting.', year)
 
     # Look for the right values until we find them
     year_first = year_last = 0
@@ -263,6 +273,9 @@ def GetYearNumbers(binfos, year, sender=None):
     # Very inefficient search algorithm for year boundaries but as cache is used not such a problem
     approxnumber = binfos['last_strip_number']*max(year - binfos['first_year'], 1)/(binfos['last_year'] - binfos['first_year'])
     infos = GetJSON(approxnumber)
+    # Convert in dictionnary month & year to int
+    for k in ('year','month'):
+        infos[k] = int(infos[k])
     step_backward = step_forward = 0
     # Special cases
     if year == binfos['first_year']:
@@ -355,25 +368,18 @@ def GetBasicInfos(sender=None):
     return infos
 
 ####################################################################################################
-# Get JSON info from URL or cache & cache it before returning a JSON object
+# Get JSON info from URL or cache
 @route('/photos/xkcd/getjson')
 def GetJSON(id, sender=None):
     # Get the number of the last comic
     if not isinstance(id, str):
         id = str(id)
 
-    if Data.Exists(id):
-        # Get data from the JSON cache
-        StripInfos = Data.LoadObject(id)
-    else:
-        # Data not available, get it from URL and cache
-        try:
-            StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (id,))
-        except:
-            Log.Debug('JSON not available for id=%s', id)
-            return None
-        Data.SaveObject(sid, StripInfos)
-    # Convert in dictionnary month & year to int to be sure to minimize problems
-    for k in ('year','month'):
-        infos[k] = int(infos[k])
+    # Get data from URL or cache
+    try:
+        StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (id,), cacheTime=CACHE_1YEAR)
+    except:
+        Log.Debug('JSON not available for id=%s', id)
+        return None
+
     return StripInfos
