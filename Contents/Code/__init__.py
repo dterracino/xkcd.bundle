@@ -6,7 +6,7 @@ ICON     = 'icon-default.png'
 SEARCH_STEP_REDUCTION_FACTOR = 10
 MAX_NB_ITER = 100
 JSON_LAST_ELT_URL = 'http://xkcd.com/info.0.json'
-JSON_BASE_URL = 'http://xkcd.com/%d/info.0.json'
+JSON_BASE_URL = 'http://xkcd.com/%s/info.0.json'
 MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"]
 
@@ -68,7 +68,7 @@ def YearDirectory(binfos, year, sender=None):
         oc.add(PhotoAlbumObject(
                                   key = Callback(GetMonthPhotos, binfos=binfos, first=first_nb, last=last_nb),
                                   title = name,
-                                  thumb = thumb =Callback(GetIcon, year=year, month=i, binfos=binfos)
+                                  thumb = Callback(GetIcon, year=year, month=i, binfos=binfos)
                                 ))
     return oc
 
@@ -156,10 +156,10 @@ def GetMonthNumbers(binfos, year, month, sender=None):
             month_last = month_boundaries.get('month_%d_last'%(int(month),),None)
             #Values are there
             if month_first is not None and month_last is not None:
-                if !month_last and !month_first:
+                if not month_last and not month_first:
                     Log.Info('No strip found for %s %d', MONTHS_NAMES[month-1], int(year))
                     return 0, 0
-                elif !month_last or !month_first:
+                elif not month_last or not month_first:
                     # Reset the cache for this month if only one strip value is found
                     Log.Debug('Error with cache for %s %d', MONTHS_NAMES[month-1], int(year))
                     month_boundaries.pop('month_%d_first'%(int(month),),None)
@@ -167,13 +167,6 @@ def GetMonthNumbers(binfos, year, month, sender=None):
                 else:
                     Log.Debug('For %s, first strip number is %d and last is %d', MONTHS_NAMES[month-1], month_first, month_last)
                     return month_first, month_last
-
-    # Only 28/31 days in a month, we will go for brute force (more or less)
-    year_first, year_last = GetYearNumbers(binfos, year)
-    approxnumber = int(year_first + month/12*(year_last - year_first))
-    infos = GetJSON(approxnumber)
-    step = (infos['month']) + infos['day']/31 - month)
-    step = (approxnumber-year_first)/step
 
     # Look for the right values until we find them
     month_last = month_first = 0
@@ -186,6 +179,13 @@ def GetMonthNumbers(binfos, year, month, sender=None):
     if month == 12:
         month_last = year_last
         month_after = False
+
+    # Only 28/31 days in a month, we will go for brute force (more or less)
+    year_first, year_last = GetYearNumbers(binfos, year)
+    approxnumber = int(year_first + month/12*(year_last - year_first))
+    infos = GetJSON(approxnumber)
+    step = (infos['month'] + infos['day']/31 - month)
+    step = (approxnumber - year_first)/step
 
     new_nb_before = max(int(approxnumber - step),year_first)
     new_nb_after = min(int(approxnumber + step),year_last)
@@ -242,8 +242,11 @@ def GetMonthNumbers(binfos, year, month, sender=None):
 @route('/photos/xkcd/getyearnumbers')
 def GetYearNumbers(binfos, year, sender=None):
     # Get data from year cache if existing
+    if not isinstance(year, int):
+        year = int(year)
     cache = 'year_%d' %(year,)
     year_boundaries = {}
+    # Data.Remove(cache)
 
     if Data.Exists(cache):
         # Get data from the JSON cache
@@ -253,42 +256,46 @@ def GetYearNumbers(binfos, year, sender=None):
         Log.Debug('For %d, first strip number is %d and last is %d', year, year_first, year_last)
         return year_first, year_last
 
-    # Very inefficient search algorithm for year boundaries but as cache is used not such a problem
-    approxnumber = int(binfos['last_strip_number']*\
-            (year-binfos['first_year'])/(binfos['last_year']-binfos['first_year']))
-    infos = GetJSON(approxnumber)
-    step_backward = (infos['year']) + infos['month']/12 - binfos['first_year'])
-    step_backward = approxnumber/(SEARCH_STEP_REDUCTION_FACTOR*step_backward)
-    step_forward = (infos['year']) + infos['month']/12 - binfos['last_year'])
-    step_forward = (binfos['last_strip_number']-approxnumber)/(SEARCH_STEP_REDUCTION_FACTOR*step_forward)
-
     # Look for the right values until we find them
     year_first = year_last = 0
     year_before = year_after = True
 
+    # Very inefficient search algorithm for year boundaries but as cache is used not such a problem
+    approxnumber = binfos['last_strip_number']*max(year - binfos['first_year'], 1)/(binfos['last_year'] - binfos['first_year'])
+    infos = GetJSON(approxnumber)
+    step_backward = step_forward = 0
     # Special cases
     if year == binfos['first_year']:
         year_first = 1
         year_before = False
+    else:
+        step_backward = max(infos['year'] + infos['month']/12 - binfos['first_year'],1)
+        step_backward = approxnumber/(SEARCH_STEP_REDUCTION_FACTOR*step_backward)
     if year == binfos['last_year']:
         year_last = binfos['last_strip_number']
         year_after = False
+    else:
+        step_forward = max(binfos['last_year'] - infos['year'] - infos['month']/12,1)
+        step_forward = (binfos['last_strip_number'] - approxnumber)/(SEARCH_STEP_REDUCTION_FACTOR*step_forward)
+    Log.Debug('For Year %s, step forward is %s and backward is %s, approx number is %s',year,step_forward,step_backward,approxnumber)
 
     i = 0
     new_nb_before = max(int(approxnumber - step_backward),1)
     new_nb_after = min(int(approxnumber + step_forward),binfos['last_strip_number'])
     while((year_before or year_after) and i<MAX_NB_ITER):
-        i += 1
+        i = i + 1
         # First entry for the year
         if year_before:
             infos = GetJSON(new_nb_before)
+            infos['year'] = int(infos['year'])
             if infos['year'] == (year - 1):
                 # We are close, now go forward
                 j = 0
                 while(j<MAX_NB_ITER and infos['year'] != year): 
-                    new_nb_before += 1
-                    j += 1
+                    new_nb_before = new_nb_before + 1
+                    j = j + 1
                     infos = GetJSON(new_nb_before)
+                    infos['year'] = int(infos['year'])
                 if infos['year'] == year:
                     year_first = new_nb_before
                 year_before = False
@@ -297,13 +304,15 @@ def GetYearNumbers(binfos, year, sender=None):
         # Last entry for the year
         if year_after:
             infos = GetJSON(new_nb_after)
+            infos['year'] = int(infos['year'])
             if infos['year'] == (year + 1):
                 # We are close, now go backward
                 j = 0
                 while(j<MAX_NB_ITER and infos['year'] != year): 
-                    new_nb_after -= 1
-                    j += 1
+                    new_nb_after = new_nb_after - 1
+                    j = j + 1
                     infos = GetJSON(new_nb_after)
+                    infos['year'] = int(infos['year'])
                 if infos['year'] == year:
                     year_last = new_nb_after
                 year_after = False
@@ -312,14 +321,14 @@ def GetYearNumbers(binfos, year, sender=None):
 
     # Ok, now we handle possible errors
     if not year_first or not year_last:
-        Log.Critical('Impossible to find the %s strip of the year %d',
-                            'first' if not year_first else 'last', year)
+        year_type = 'first' if not year_first else 'last'
+        Log.Critical('Impossible to find the %s strip of the year %d', year_type, year)
     else:
         year_boundaries = {'year_first_strip':year_first, 'year_last_strip':year_last}
         Data.SaveObject(cache, year_boundaries)
         Log.Debug('For %d, first strip number is %d and last is %d', year, year_first, year_last)
 
-    return year_first, year_last
+    return (year_first, year_last)
 
 ####################################################################################################
 # Get basic infos (dict with 'first_year', 'last_year' and 'last_strip_number')
@@ -350,17 +359,21 @@ def GetBasicInfos(sender=None):
 @route('/photos/xkcd/getjson')
 def GetJSON(id, sender=None):
     # Get the number of the last comic
-    sid = str(id)
-    iid = int(id)
-    if Data.Exists(sid):
+    if not isinstance(id, str):
+        id = str(id)
+
+    if Data.Exists(id):
         # Get data from the JSON cache
-        StripInfos = Data.LoadObject(sid)
+        StripInfos = Data.LoadObject(id)
     else:
         # Data not available, get it from URL and cache
         try:
-            StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (iid,))
+            StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (id,))
         except:
-            Log.Debug('JSON not available for id=%d', iid)
+            Log.Debug('JSON not available for id=%s', id)
             return None
         Data.SaveObject(sid, StripInfos)
+    # Convert in dictionnary month & year to int to be sure to minimize problems
+    for k in ('year','month'):
+        infos[k] = int(infos[k])
     return StripInfos
