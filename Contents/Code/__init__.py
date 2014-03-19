@@ -9,8 +9,6 @@ MAX_NB_ITER = 100
 CACHE_1YEAR = 365 * CACHE_1DAY
 JSON_LAST_ELT_URL = 'http://xkcd.com/info.0.json'
 JSON_BASE_URL = 'http://xkcd.com/%s/info.0.json'
-MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"]
 
 ####################################################################################################
 def Start():
@@ -92,7 +90,6 @@ def GetMonthPhotos(first, last, sender=None):
         oc.add(PhotoObject(
                             url=JSON_BASE_URL % (str(i),),
                             title=infos['title'],
-                            # thumb=Callback(GetIcon, id=i),
                             thumb=infos['img'],
                             summary=infos['alt']
                             )
