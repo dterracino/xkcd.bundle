@@ -1,8 +1,24 @@
+def MetadataObjectForURL(url):
+
+    StripInfos = JSON.ObjectFromURL(url)
+
+    # Return the photo
+    return PhotoObject(
+        title = StripInfos['title'],
+        summary = StripInfos['alt'],
+        thumb = StripInfos['img']
+    )
+
 ####################################################################################################
 def MediaObjectsForURL(url):
+
     return [
-        MediaObject
-          (
-            parts = [PartObject(key=url)]
-          )
-        ]
+      MediaObject(
+        parts = [PartObject(key=Callback(GetPhoto, url = url))]
+      )
+    ]
+
+####################################################################################################
+def GetPhoto(url):
+    StripInfos = JSON.ObjectFromURL(url)
+    return Redirect(StripInfos['img'])

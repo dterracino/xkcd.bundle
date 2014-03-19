@@ -10,12 +10,13 @@
                 <string>com.plexapp.plugins.xkcd</string>
                 <key>URLPatterns</key>
                 <array>
-                    <string>^http://imgs\.xkcd\.com/*</string>
+                    <string>^http://xkcd\.com/[0-9]+/info\.0\.json</string>
+                    <string>^http://xkcd\.com/info\.0\.json</string>
                 </array>
                 <key>TestURLs</key>
                 <array>
-                    <string>http://imgs.xkcd.com/comics/woodpecker.png</string>
-                    <string>http://imgs.xkcd.com/comics/manuals.png</string>
+                    <string>http://xkcd.com/500/info.0.json</string>
+                    <string>http://xkcd.com/1124/info.0.json</string>
                 </array>
             </dict>
         </dict>

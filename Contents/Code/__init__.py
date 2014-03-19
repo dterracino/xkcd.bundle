@@ -90,10 +90,11 @@ def GetMonthPhotos(first, last, sender=None):
             Log.Warn('Strip number %d was not found', i)
             continue
         oc.add(PhotoObject(
-                            url=infos['img'],
+                            url=JSON_BASE_URL % (str(i),),
+                            # url=infos['img'],
                             title=infos['title'],
-                            # thumb=Callback(GetIcon, id=nbstrip),
-                            thumb=infos['img'],
+                            thumb=Callback(GetIcon, id=i),
+                            # thumb=infos['img'],
                             summary=infos['alt']
                             )
                 )
