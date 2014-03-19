@@ -1,5 +1,4 @@
 def MetadataObjectForURL(url):
-
     StripInfos = JSON.ObjectFromURL(url)
 
     # Return the photo
