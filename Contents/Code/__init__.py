@@ -86,7 +86,6 @@ def GetMonthPhotos(first, last, sender=None):
     #Create monthly subdirectories
     for i in xrange(first, last+1):
         infos = GetJSON(i)
-        # Log.Debug('%s'%(infos['img'],))
         if infos is None:
             Log.Warn('Strip number %d was not found', i)
             continue
@@ -94,24 +93,11 @@ def GetMonthPhotos(first, last, sender=None):
                             url=infos['img'],
                             title=infos['title'],
                             # thumb=Callback(GetIcon, id=nbstrip),
-                            # thumb=infos['img'],
-                            # summary=infos['alt']
-                            )
-                )
-    return oc
-
-####################################################################################################
-# Return a PhotoObject from a strip number
-@route('/photos/xkcd/getstrip')
-def GetStrip(nbstrip, sender = None):
-    infos = GetJSON(int(nbstrip))
-
-    return PhotoObject(
-                            key=infos['img'],
-                            title=infos['title'],
                             thumb=infos['img'],
                             summary=infos['alt']
                             )
+                )
+    return oc
 
 ####################################################################################################
 # Find and return an icon for year, month or id, basic infos are needed
@@ -441,8 +427,7 @@ def GetBasicInfos(sender=None):
 @route('/photos/xkcd/getjson')
 def GetJSON(id, sender=None):
     # Get the number of the last comic
-    if not isinstance(id, str):
-        id = str(id)
+    id = str(id)
 
     # Get data from URL or cache
     try:
