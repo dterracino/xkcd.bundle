@@ -91,10 +91,9 @@ def GetMonthPhotos(first, last, sender=None):
             continue
         oc.add(PhotoObject(
                             url=JSON_BASE_URL % (str(i),),
-                            # url=infos['img'],
                             title=infos['title'],
-                            thumb=Callback(GetIcon, id=i),
-                            # thumb=infos['img'],
+                            # thumb=Callback(GetIcon, id=i),
+                            thumb=infos['img'],
                             summary=infos['alt']
                             )
                 )
@@ -110,15 +109,15 @@ def GetIcon(year=0, month=0, id=0, sender=None):
     if id:
         internal_id = id
     elif year:
-        # try:
-        if month:
-            first_nb, last_nb = GetMonthNumbers(year, month)
-        else:
-            first_nb, last_nb = GetYearNumbers(year)
-        # except:
+        try:
+            if month:
+                first_nb, last_nb = GetMonthNumbers(year, month)
+            else:
+                first_nb, last_nb = GetYearNumbers(year)
+        except:
             # Error with GetYear/Month functions
-            # Log.Warn('Function GetIcon defaulting due to GetYear/Month problems')
-            # return Redirect(img)
+            Log.Warn('Function GetIcon defaulting due to GetYear/Month problems')
+            return Redirect(img)
     else:
         # Error
         Log.Error('Function GetIcon called without correct args, defaulting...')
@@ -406,13 +405,15 @@ def GetYearNumbers(year, sender=None):
 def GetBasicInfos(sender=None):
     # Get the number of the last comic
     try:
-        LastStripInfos = JSON.ObjectFromURL(JSON_LAST_ELT_URL)
+        LastStripInfos = JSON.ObjectFromURL(JSON_LAST_ELT_URL, cacheTime=CACHE_1HOUR)
     except:
         Log.Error('JSON not available for the last strip')
         return {}
-    FirstStripInfos = GetJSON('1')
-
-    if FirstStripInfos is None:
+    # Get the number of the first comic
+    try:
+        FirstStripInfos = JSON.ObjectFromURL(JSON_BASE_URL % ('1',), cacheTime=CACHE_1YEAR)
+    except:
+        Log.Debug('JSON not available for id=1')
         return {}
 
     infos = {
