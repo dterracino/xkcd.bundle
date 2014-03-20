@@ -10,6 +10,9 @@ MAX_NB_ITER                        = 100
 CACHE_1YEAR                        = 365 * CACHE_1DAY
 JSON_LAST_ELT_URL                  = 'http://xkcd.com/info.0.json'
 JSON_BASE_URL                      = 'http://xkcd.com/%s/info.0.json'
+MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"]
+
 
 ####################################################################################################
 def Start():
@@ -177,8 +180,6 @@ def GetMonthNumbers(year, month):
         last_month_last = month_boundaries.get('month_%d_last'%(month-1,),None)
         if last_month_last is not None:
             month_first = int(last_month_last)+1
-            # 404 joke
-            month_first = month_first if month_first!=404 else 405
             # Check existence of the strip
             infos = GetJSON(month_first)
             # Convert in dictionary day, month & year to int
@@ -273,7 +274,7 @@ def GetYearNumbers(year):
     cache = 'year_%d' %(year,)
     year_boundaries = {}
 
-    if Data.Exists(cache):
+    if Data.Exists(cache) and year != binfos['last_year']:
         # Get data from the JSON cache
         try:
             year_boundaries = Data.LoadObject(cache)
@@ -307,8 +308,6 @@ def GetYearNumbers(year):
             data_exists = True
             year_boundaries_lasty = Data.LoadObject(cache_last_year)
             year_first = year_boundaries_lasty['year_last_strip']+1
-            # 404 joke
-            year_first = year_first if year_first!=404 else 405
             # Check existence of the strip
             infos = GetJSON(year_first)
             # Convert in dictionary day, month & year to int
@@ -422,12 +421,21 @@ def GetBasicInfos():
 ####################################################################################################
 # Get JSON info from URL or cache
 @route(PREFIX+'/getjson')
-def GetJSON(id, sender=None):
+def GetJSON(id):
     # Get data from URL or cache
     try:
         StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (id,), cacheTime=CACHE_1YEAR)
     except:
-        Log.Debug('JSON not available for id=%s', id)
-        return None
+        # This 404 joke is really annoying
+        if int(id) == 404:
+            StripInfos = {
+                        'year': 2008,
+                        'month': 4,
+                        'day': 1,
+                        'alt': '404 - Not Found'
+                        }
+        else:
+            Log.Debug('JSON not available for id=%s', id)
+            return None
 
     return StripInfos
