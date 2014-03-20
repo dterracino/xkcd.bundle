@@ -92,7 +92,7 @@ def GetMonthPhotos(first, last):
         oc.add(PhotoObject(
                             url=JSON_BASE_URL % (str(i),),
                             title=infos['title'],
-                            thumb=infos['img'],
+                            thumb=Resource.ContentsOfURLWithFallback(url=infos['img']),
                             summary=infos['alt']
                             )
                 )

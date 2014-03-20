@@ -5,7 +5,7 @@ def MetadataObjectForURL(url):
     return PhotoObject(
         title = StripInfos['title'],
         summary = StripInfos['alt'],
-        thumb = StripInfos['img']
+        thumb = Resource.ContentsOfURLWithFallback(url=StripInfos['img'])
     )
 
 ####################################################################################################
