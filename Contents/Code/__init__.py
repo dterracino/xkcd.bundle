@@ -1,14 +1,15 @@
 from random import randint
 
-NAME    = 'xkcd'
-ART      = 'art-default.jpg'
-ICON     = 'icon-default.png'
-SEARCH_STEP_REDUCTION_FACTOR = 10
+NAME                               = 'xkcd'
+ART                                = 'art-default.jpg'
+ICON                               = 'icon-default.png'
+PREFIX                             = '/photos/xkcd'
+SEARCH_STEP_REDUCTION_FACTOR       = 10
 SEARCH_STEP_REDUCTION_FACTOR_MONTH = 4
-MAX_NB_ITER = 100
-CACHE_1YEAR = 365 * CACHE_1DAY
-JSON_LAST_ELT_URL = 'http://xkcd.com/info.0.json'
-JSON_BASE_URL = 'http://xkcd.com/%s/info.0.json'
+MAX_NB_ITER                        = 100
+CACHE_1YEAR                        = 365 * CACHE_1DAY
+JSON_LAST_ELT_URL                  = 'http://xkcd.com/info.0.json'
+JSON_BASE_URL                      = 'http://xkcd.com/%s/info.0.json'
 
 ####################################################################################################
 def Start():
@@ -29,7 +30,7 @@ def Start():
     HTTP.CacheTime = CACHE_1HOUR
 
 ####################################################################################################
-@handler('/photos/xkcd', NAME, art = ART, thumb = ICON)
+@handler(PREFIX, NAME, art = ART, thumb = ICON)
 def XKCDMenu():
     oc = ObjectContainer()
     BasicInfos = GetBasicInfos()
@@ -54,8 +55,8 @@ def XKCDMenu():
 
 ####################################################################################################
 # Create monthly directories for a year as Photoalbums
-@route('/photos/xkcd/yeardirectory')
-def YearDirectory(year, sender=None):
+@route(PREFIX+'/yeardirectory', year = int)
+def YearDirectory(year):
     oc = ObjectContainer()
     first_nb, last_nb = GetYearNumbers(year)
     binfos = GetBasicInfos()
@@ -75,11 +76,9 @@ def YearDirectory(year, sender=None):
 
 ####################################################################################################
 # Populate monthly directories
-@route('/photos/xkcd/getmonthphotos')
-def GetMonthPhotos(first, last, sender=None):
+@route(PREFIX+'/getmonthphotos', first = int, last = int)
+def GetMonthPhotos(first, last):
     oc = ObjectContainer()
-    first =int(first)
-    last = int(last)
 
     #Create monthly subdirectories
     for i in xrange(first, last+1):
@@ -98,8 +97,8 @@ def GetMonthPhotos(first, last, sender=None):
 
 ####################################################################################################
 # Find and return an icon for year, month or id, basic infos are needed
-@route('/photos/xkcd/geticon')
-def GetIcon(year=0, month=0, id=0, sender=None):
+@route(PREFIX+'/geticon', year = int, month = int, id = int)
+def GetIcon(year=0, month=0, id=0):
     img = R(ICON)
     internal_id = 0
     binfos = GetBasicInfos()
@@ -135,11 +134,8 @@ def GetIcon(year=0, month=0, id=0, sender=None):
     return Redirect(img)
 ####################################################################################################
 # Find boundary strip numbers for a month returned as int month_first, int month_last
-@route('/photos/xkcd/getmonthnumbers')
-def GetMonthNumbers(year, month, sender=None):
-    year = int(year)
-    month = int(month)
-
+@route(PREFIX+'/getmonthnumbers', year = int, month = int)
+def GetMonthNumbers(year, month):
     binfos = GetBasicInfos()
 
     cache = 'year_%d' %(year,)
@@ -162,7 +158,7 @@ def GetMonthNumbers(year, month, sender=None):
                     Log.Debug('Error with cache for %s %d', MONTHS_NAMES[month-1], int(year))
                     month_boundaries.pop('month_%d_first'%(month,),None)
                     month_boundaries.pop('month_%d_last'%(month,),None)
-                else:
+                elif year != binfos['last_year'] and month != binfos['last_month']:
                     Log.Debug('For %s, first strip number is %d and last is %d', MONTHS_NAMES[month-1], month_first, month_last)
                     return month_first, month_last
 
@@ -270,10 +266,8 @@ def GetMonthNumbers(year, month, sender=None):
 
 ####################################################################################################
 # Find boundary strip numbers for a year returned as int year_first, int year_last
-@route('/photos/xkcd/getyearnumbers')
-def GetYearNumbers(year, sender=None):
-    year = int(year)
-
+@route(PREFIX+'/getyearnumbers', year = int)
+def GetYearNumbers(year):
     binfos = GetBasicInfos()
 
     cache = 'year_%d' %(year,)
@@ -398,8 +392,8 @@ def GetYearNumbers(year, sender=None):
 ####################################################################################################
 # Get basic infos (dict with 'first_year', 'last_year' and 'last_strip_number')
 # before creating the structure
-@route('/photos/xkcd/basicinfos')
-def GetBasicInfos(sender=None):
+@route(PREFIX+'/basicinfos')
+def GetBasicInfos():
     # Get the number of the last comic
     try:
         LastStripInfos = JSON.ObjectFromURL(JSON_LAST_ELT_URL, cacheTime=CACHE_1HOUR)
@@ -414,20 +408,21 @@ def GetBasicInfos(sender=None):
         return {}
 
     infos = {
-            'first_year':int(FirstStripInfos['year']),
-            'last_year':int(LastStripInfos['year']),
-            'last_strip_number':int(LastStripInfos['num']),
+            'first_year':FirstStripInfos['year'],
+            'last_year':LastStripInfos['year'],
+            'last_month':LastStripInfos['month'],
+            'last_strip_number':LastStripInfos['num'],
             }
+    # Convert in dictionary to int
+    for k,v in infos.iteritems():
+        infos[k] = int(v)
     Log.Debug('Basic infos are: %s', repr(infos)[1:-1])
     return infos
 
 ####################################################################################################
 # Get JSON info from URL or cache
-@route('/photos/xkcd/getjson')
+@route(PREFIX+'/getjson')
 def GetJSON(id, sender=None):
-    # Get the number of the last comic
-    id = str(id)
-
     # Get data from URL or cache
     try:
         StripInfos = JSON.ObjectFromURL(JSON_BASE_URL % (id,), cacheTime=CACHE_1YEAR)
