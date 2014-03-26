@@ -3,10 +3,7 @@
         "id": "vmodemenu",
         "type": "enum",
         "label": "Main menu view mode",
-        "values": [
-            "InfoList",
-            "List"
-        ],
+        "values": ["InfoList", "List"],
         "default": "List"
     },
 
@@ -14,10 +11,7 @@
         "id": "vmodeyear",
         "type": "enum",
         "label": "Year submenu view mode",
-        "values": [
-            "InfoList",
-            "List"
-        ],
+        "values": ["InfoList", "List"],
         "default": "List"
     },
 
@@ -25,11 +19,7 @@
         "id": "vmodemonth",
         "type": "enum",
         "label": "Month submenu view mode",
-        "values": [
-            "InfoList",
-            "List",
-            "Pictures"
-        ],
+        "values": ["InfoList", "List", "Pictures"],
         "default": "Pictures"
-    },
+    }
 ]
