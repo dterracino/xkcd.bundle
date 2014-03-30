@@ -6,6 +6,7 @@
         "values": ["InfoList", "List"],
         "default": "List"
     },
+
     {
         "id": "vmodeyear",
         "type": "enum",
@@ -13,6 +14,7 @@
         "values": ["InfoList", "List"],
         "default": "List"
     },
+
     {
         "id": "vmodemonth",
         "type": "enum",
