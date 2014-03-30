@@ -35,7 +35,8 @@ def Start():
 ####################################################################################################
 @handler(PREFIX, NAME, art = ART, thumb = ICON)
 def XKCDMenu():
-    oc = ObjectContainer(view_group=Prefs['vmodemenu'])
+    # oc = ObjectContainer(view_group=Prefs['vmodemenu'])
+    oc = ObjectContainer()
     BasicInfos = GetBasicInfos()
 
     if not BasicInfos:
@@ -60,7 +61,8 @@ def XKCDMenu():
 # Create monthly directories for a year as Photoalbums
 @route(PREFIX+'/yeardirectory', year = int)
 def YearDirectory(year):
-    oc = ObjectContainer(view_group=Prefs['vmodeyear'])
+    # oc = ObjectContainer(view_group=Prefs['vmodeyear'])
+    oc = ObjectContainer()
     first_nb, last_nb = GetYearNumbers(year)
     binfos = GetBasicInfos()
     
@@ -81,7 +83,8 @@ def YearDirectory(year):
 # Populate monthly directories
 @route(PREFIX+'/getmonthphotos', first = int, last = int)
 def GetMonthPhotos(first, last):
-    oc = ObjectContainer(view_group=Prefs['vmodemonth'])
+    # oc = ObjectContainer(view_group=Prefs['vmodemonth'])
+    oc = ObjectContainer()
 
     #Create monthly subdirectories
     for i in xrange(first, last+1):
