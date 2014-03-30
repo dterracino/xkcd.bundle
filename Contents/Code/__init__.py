@@ -16,14 +16,9 @@ MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
 
 ####################################################################################################
 def Start():
-    Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-    Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
-    Plugin.AddViewGroup("Pictures", viewMode="Pictures", mediaType="photos")
-
     # Set the default ObjectContainer attributes
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
-    ObjectContainer.view_group = "List"
 
     # Default icons for DirectoryObject
     DirectoryObject.thumb = R(ICON)
@@ -35,7 +30,8 @@ def Start():
 ####################################################################################################
 @handler(PREFIX, NAME, art = ART, thumb = ICON)
 def XKCDMenu():
-    oc = ObjectContainer(view_group=Prefs['vmodemenu'])
+    # view_prefs = Prefs['vmodemenu']
+    oc = ObjectContainer()
     BasicInfos = GetBasicInfos()
 
     if not BasicInfos:
@@ -44,23 +40,24 @@ def XKCDMenu():
         return ObjectContainer(header=NAME, message=L("ErrorBasics"))
 
     #Create yearly subdirectories
-    for i in xrange(BasicInfos['first_year'], BasicInfos['last_year']+1):
-        first_nb, last_nb = GetYearNumbers(i)
-        if not first_nb:
-            continue
-        name = Locale.LocalStringWithFormat('Year_Dirname', i, first_nb, last_nb)
-        oc.add(DirectoryObject(
-                            key = Callback(YearDirectory, year=i),
-                            title= name,
-                            thumb = Callback(GetIcon, year=i)
-                            ))
+    # for i in xrange(BasicInfos['first_year'], BasicInfos['last_year']+1):
+        # first_nb, last_nb = GetYearNumbers(i)
+        # if not first_nb:
+            # continue
+        # name = Locale.LocalStringWithFormat('Year_Dirname', i, first_nb, last_nb)
+        # oc.add(DirectoryObject(
+                            # key = Callback(YearDirectory, year=i),
+                            # title= name,
+                            # thumb = Callback(GetIcon, year=i)
+                            # ))
     return oc
 
 ####################################################################################################
 # Create monthly directories for a year as Photoalbums
 @route(PREFIX+'/yeardirectory', year = int)
 def YearDirectory(year):
-    oc = ObjectContainer(view_group=Prefs['vmodeyear'])
+    view_prefs = Prefs['vmodeyear']
+    oc = ObjectContainer()
     first_nb, last_nb = GetYearNumbers(year)
     binfos = GetBasicInfos()
     
@@ -81,7 +78,8 @@ def YearDirectory(year):
 # Populate monthly directories
 @route(PREFIX+'/getmonthphotos', first = int, last = int)
 def GetMonthPhotos(first, last):
-    oc = ObjectContainer(view_group=Prefs['vmodemonth'])
+    view_prefs = Prefs['vmodemonth']
+    oc = ObjectContainer()
 
     #Create monthly subdirectories
     for i in xrange(first, last+1):
