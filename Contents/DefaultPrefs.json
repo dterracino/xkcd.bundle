@@ -1,6 +1,6 @@
 [
     {
-        "id": "xkcdmenu",
+        "id": "vmodemenu",
         "type": "enum",
         "label": "Main menu view mode",
         "values": ["InfoList", "List"],
@@ -8,7 +8,7 @@
     },
 
     {
-        "id": "xkcdyear",
+        "id": "vmodeyear",
         "type": "enum",
         "label": "Year submenu view mode",
         "values": ["InfoList", "List"],
@@ -16,7 +16,7 @@
     },
 
     {
-        "id": "xkcdmonth",
+        "id": "vmodemonth",
         "type": "enum",
         "label": "Month submenu view mode",
         "values": ["InfoList", "List", "Pictures"],
