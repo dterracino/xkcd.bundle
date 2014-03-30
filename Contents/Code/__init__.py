@@ -16,14 +16,9 @@ MONTHS_NAMES = ["January", "February", "March", "April", "May", "June",
 
 ####################################################################################################
 def Start():
-    Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-    Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
-    Plugin.AddViewGroup("Pictures", viewMode="Pictures", mediaType="photos")
-
     # Set the default ObjectContainer attributes
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
-    ObjectContainer.view_group = "List"
 
     # Default icons for DirectoryObject
     DirectoryObject.thumb = R(ICON)
